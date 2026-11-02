@@ -102,15 +102,15 @@ class DrmaaScheduler(Scheduler):
         script = self.build_job_script(job, work_dir, lock_file="")
         job_file = os.path.join(work_dir, f"{job.job_uid}.sh")
 
-        sbatch = ["#!/bin/bash"]
+        sbatch = ["#!/bin/bash", 'export HOME=$(getent passwd "$(id -un)" | cut -d: -f6)']
         if settings.slurm_partition:
             sbatch.append(f"#SBATCH --partition={settings.slurm_partition}")
         if settings.slurm_qos:
             sbatch.append(f"#SBATCH --qos={settings.slurm_qos}")
         if settings.slurm_account:
             sbatch.append(f"#SBATCH --account={settings.slurm_account}")
-        if settings.slurm_native:
-            sbatch.append(f"#SBATCH {settings.slurm_native}")
+        if settings.jobs_drmaa_native:
+            sbatch.append(f"#SBATCH {settings.jobs_drmaa_native}")
         full_script = "\n".join(sbatch + [script])
 
         Path(job_file).write_text(full_script)
@@ -136,8 +136,8 @@ class DrmaaScheduler(Scheduler):
             jt.remoteCommand = job_file
             jt.jobName = job.program_name
             jt.workingDirectory = work_dir
-            if settings.slurm_native:
-                jt.nativeSpecification = settings.slurm_native
+            if settings.jobs_drmaa_native:
+                jt.nativeSpecification = settings.jobs_drmaa_native
             job_id = session.runJob(jt)
             session.deleteJobTemplate(jt)
         finally:
