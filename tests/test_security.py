@@ -101,7 +101,7 @@ def test_mail_line_is_single_quoted():
     job.title = 'x" $(touch /tmp/M) `id` \'; rm -rf / #'
     job.email = "a@b.com"
     script = Scheduler().build_job_script(job, "/tmp/w/")
-    line = next(l for l in script.splitlines() if l.startswith("/bin/mail"))
+    line = next(li for li in script.splitlines() if li.startswith("/bin/mail"))
     argv = shlex.split(line.split(" < ")[0])
     assert argv[:2] == ["/bin/mail", "-s"]
     assert argv[2] == job.mail_subject          # subject is ONE literal argument
@@ -114,7 +114,8 @@ def test_mail_line_is_single_quoted():
 def test_job_uid_is_unguessable_and_unique():
     uids = set()
     for _ in range(200):
-        j = Job(); j.program_name = "blast"
+        j = Job()
+        j.program_name = "blast"
         uids.add(j.generate_job_uid())
     assert len(uids) == 200
     assert all(len(u) >= len("blast-") + 32 for u in uids)

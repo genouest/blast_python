@@ -1,0 +1,3 @@
+Package: slurm* libslurm* libpmi0* libpmi2-0* libnss-slurm* libpam-slurm* libslurm-perl slurm-wlm-basic-plugins
+Pin: version 24.11.5-4.1
+Pin-Priority: 1001

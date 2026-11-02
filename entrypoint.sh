@@ -1,33 +1,20 @@
 #!/bin/bash
 set -e
 
-: ${APP_USER:='blast'}
-: ${APP_GROUP:='blast'}
+function run_scripts () {
+	SCRIPTS_DIR="/scripts/$1.d"
+	SCRIPT_FILES_PATTERN="^${SCRIPTS_DIR}/[0-9][0-9][a-zA-Z0-9_-]+$"
+	SCRIPTS=$(find "$SCRIPTS_DIR" -type f -uid 0 -executable -regex "$SCRIPT_FILES_PATTERN" | sort)
+	if [ -n "$SCRIPTS" ] ; then
+		echo "=>> $1-scripts:"
+	    for script in $SCRIPTS ; do
+	        echo "=> $script"
+			. "$script"
+	    done
+	fi
+}
 
-# Create the group, using the provided GID if any.
-if ! getent group "$APP_GROUP" >/dev/null 2>&1; then
-    if [ -n "$GID" ]; then
-        groupadd --gid "$GID" "$APP_GROUP"
-    else
-        groupadd "$APP_GROUP"
-    fi
-fi
-
-# Create the user, using the provided UID if any, attached to the group.
-if ! id -u "$APP_USER" >/dev/null 2>&1; then
-    if [ -n "$UID" ]; then
-        useradd --no-create-home --no-user-group --uid "$UID" --gid "$APP_GROUP" "$APP_USER"
-    else
-        useradd --no-create-home --no-user-group --gid "$APP_GROUP" "$APP_USER"
-    fi
-fi
-
-# Ensure the application dir and jobs work dir are owned by the app user.
-chown -R "$APP_USER":"$APP_GROUP" /srv/blast
-: ${JOBS_WORK_DIR:='/tmp/'}
-mkdir -p "$JOBS_WORK_DIR"
-chown "$APP_USER":"$APP_GROUP" "$JOBS_WORK_DIR"
-
+run_scripts pre-launch
 # Drop privileges and launch the webserver as the app user so that DRMAA/slurm
 # jobs are submitted under that user.
 exec setpriv --reuid "$APP_USER" --regid "$APP_GROUP" --init-groups \
