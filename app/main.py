@@ -426,7 +426,7 @@ async def submit(
 
     # Prepare the email body file.
     if job.has_valid_email():
-        results_url = f"{settings.result_url_host}{settings.base_url_path}job/results/{job.job_uid}"
+        results_url = f"{settings.result_url_host}{settings.base_url_path}/job/results/{job.job_uid}"
         body = build_mail_body(job, result_url, results_url, back_url)
         Path(work_dir, "mail_body.txt").write_text(body)
 

@@ -86,27 +86,6 @@ class Scheduler:
 class DrmaaScheduler(Scheduler):
     """Submit jobs through the DRMAA library (e.g. against a Slurm/SGE cluster)."""
 
-    STATE_UNDETERMINED = 0
-    STATE_WAITING = 16
-    STATE_RUNNING = 32
-    STATE_SUSPENDED = 33
-    STATE_FINISHED = 48
-    STATE_FAILED = 64
-
-    TEXT_STATES = {
-        0: "unknown",
-        16: "waiting",
-        17: "waiting",
-        18: "waiting",
-        19: "waiting",
-        32: "running",
-        33: "suspended",
-        34: "suspended",
-        35: "suspended",
-        48: "finished",
-        64: "failed",
-    }
-
     def _session(self):
         import drmaa
 
@@ -179,16 +158,23 @@ class DrmaaScheduler(Scheduler):
         return int(code)
 
     def get_status(self, job: Job, db=None):
-        return self._status_code(job)
+        import drmaa
+        session = drmaa.Session()
+        try:
+            session.initialize()
+            status = session.jobStatus(job.scheduler_job_id)
+        finally:
+            session.exit()
+        return status
 
     def get_status_as_text(self, status) -> str:
-        if status == self.STATE_UNDETERMINED:
-            return self.TEXT_STATES[self.STATE_FINISHED]
-        return self.TEXT_STATES.get(status, "unknown")
+        # DRMAA already return status as text
+        return status
 
     def is_finished(self, job: Job, db=None) -> bool:
+        import drmaa
         status = self.get_status(job)
-        return status in (self.STATE_UNDETERMINED, self.STATE_FINISHED, self.STATE_FAILED)
+        return status in [drmaa.JobState.DONE, drmaa.JobState.FAILED]
 
 
 class SlurmScheduler(Scheduler):
