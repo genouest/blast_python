@@ -393,7 +393,7 @@ async def submit(
         job_uid=job.job_uid,
         result_url=result_url,
         cdd_delta=settings.cdd_delta_path,
-        pre_command=settings.pre_command,
+        pre_cmd=settings.pre_cmd,
         link_command=settings.link_command,
         link_config=settings.links_config,
     )

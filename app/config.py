@@ -75,7 +75,7 @@ class Settings(BaseSettings):
     jobs_sched_name: str = "blast"
     result_url_host: str = ""      # e.g. https://my.server/ (empty = same host)
     cdd_delta_path: str = ""
-    pre_command: str = ""
+    pre_cmd: str = ""
     link_command: str = (
         "python3 ./bin/blast_links.py "
         "--config ./bin/links.yml --gff-url $GFF3_URL"

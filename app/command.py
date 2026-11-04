@@ -5,7 +5,7 @@ Mirrors the legacy ``command.txt.twig`` template.
 Security note: the returned script is executed by a shell on the compute
 nodes. Every value that originates from a request (or from a path derived from
 one) is therefore passed through :func:`shlex.quote`, in addition to being
-validated against allow-lists in :mod:`app.schemas`. ``pre_command`` and
+validated against allow-lists in :mod:`app.schemas`. ``pre_cmd`` and
 ``link_command`` come from the administrator's configuration and are inserted
 as-is on purpose (they are shell snippets).
 """
@@ -20,7 +20,7 @@ def build_blast_command(
     job_uid: str,
     result_url: str,
     cdd_delta: str = "",
-    pre_command: str = "",
+    pre_cmd: str = "",
     link_command: str = "",
     link_config: str = "",
 ) -> str:
@@ -156,8 +156,8 @@ def build_blast_command(
     lines = []
     lines.append(f"cd {q(wd)}")
     lines.append("export PATH=./bin/:$PATH;")
-    if pre_command:
-        lines.append(pre_command)
+    if pre_cmd:
+        lines.append(pre_cmd)
     lines.append("")
     # printf with a single-quoted argument: no expansion of the content.
     lines.append(f"printf '%s\\n' {q(blast_command)} > {path('blast_command.txt')};")
