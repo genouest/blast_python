@@ -7,6 +7,7 @@ PostgreSQL or MySQL instance) can be provided through ``DATABASE_URL``.
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 APP_DIR = Path(__file__).resolve().parent
@@ -22,6 +23,10 @@ class Settings(BaseSettings):
 
     # --- Web / app ---------------------------------------------------------
     app_title: str = "Blast server (v2.2.29+)"
+    # URL prefix under which the app is exposed by the reverse proxy (which
+    # must strip it before forwarding). Any of "", "/", "blast", "/blast",
+    # "/blast/" is accepted and normalized to "" or "/blast" (leading slash,
+    # no trailing slash). Always build URLs with ``url()`` / ``external_url()``.
     base_url_path: str = ""
     upload_limit: int = 100  # MiB, per uploaded file / pasted sequence
     # Max job submissions per client IP per minute (0 = disabled).
@@ -73,7 +78,7 @@ class Settings(BaseSettings):
     jobs_method: str = "slurm"     # only "slurm" is supported in this rewrite
     jobs_work_dir: str = str(Path("/tmp/"))
     jobs_sched_name: str = "blast"
-    result_url_host: str = ""      # e.g. https://my.server/ (empty = same host)
+    result_url_host: str = ""      # e.g. https://my.server (empty = same host); a trailing "/" is ignored
     cdd_delta_path: str = ""
     pre_cmd: str = ""
     link_command: str = (
@@ -125,9 +130,38 @@ class Settings(BaseSettings):
             return Path(self.slurm_jwt_file).read_text().strip()
         return ""
 
+    # ---- URL helpers ----------------------------------------------------
+    @field_validator("base_url_path", mode="before")
+    @classmethod
+    def _normalize_base_url_path(cls, value):
+        """Return "" or "/segment[/segment...]": one leading slash, none trailing."""
+        if value is None:
+            return ""
+        segments = [seg for seg in str(value).strip().split("/") if seg]
+        return "/" + "/".join(segments) if segments else ""
+
+    @field_validator("result_url_host", mode="before")
+    @classmethod
+    def _normalize_result_url_host(cls, value):
+        """Drop whitespace and trailing slashes: "https://h/" -> "https://h"."""
+        return "" if value is None else str(value).strip().rstrip("/")
+
+    def url(self, path: str = "") -> str:
+        """In-app URL for ``path``, prefixed by ``base_url_path``.
+
+        ``url()`` is the application root ("/" or "/blast/"); ``url("job/x")``
+        is "/job/x" or "/blast/job/x". Leading slashes in ``path`` are ignored.
+        """
+        return f"{self.base_url_path}/{path.lstrip('/')}"
+
+    def external_url(self, path: str = "") -> str:
+        """Like :meth:`url`, prefixed by ``result_url_host`` (for e-mails, GFF3
+        links and anything that must be valid outside the current page)."""
+        return f"{self.result_url_host}{self.url(path)}"
+
     @property
     def result_url(self) -> str:
-        return f"{self.result_url_host}{self.base_url_path}tmp/"
+        return self.external_url("tmp/")
 
 
 @lru_cache

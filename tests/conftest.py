@@ -88,6 +88,11 @@ def banks():
 
 @pytest.fixture(autouse=True)
 def _reset_rate_limiter():
-    main_module._submissions.clear()
+    # The in-process rate limiter is optional (it may have been removed in
+    # favour of a proxy-level limit), so only reset it when it exists.
+    state = getattr(main_module, "_submissions", None)
+    if state is not None:
+        state.clear()
     yield
-    main_module._submissions.clear()
+    if state is not None:
+        state.clear()

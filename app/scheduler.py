@@ -46,8 +46,7 @@ class Scheduler:
 
     def get_result_url(self, job: Job) -> str:
         settings = get_settings()
-        prefix = f"{settings.result_url_host}{settings.base_url_path}tmp/"
-        return f"{prefix}{job.program_name}/{job.job_uid}/"
+        return settings.external_url(f"tmp/{job.program_name}/{job.job_uid}/")
 
     def build_job_script(self, job: Job, work_dir: str, lock_file: str = "") -> str:
         """Build the shell script that runs the job (and sends the email)."""

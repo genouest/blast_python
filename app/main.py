@@ -91,7 +91,7 @@ app.mount(
 # full URL, an absolute path, or a filename relative to the static override dir.
 _custom_css = settings.custom_css
 if _custom_css and not _custom_css.startswith(("http://", "https://", "/")):
-    _custom_css = f"{settings.base_url_path}/static/custom/{_custom_css.lstrip('/')}"
+    _custom_css = settings.url(f"static/custom/{_custom_css.lstrip('/')}")
 templates.env.globals["custom_css"] = _custom_css
 
 db_provider = load_db_provider(settings.banks_config)
@@ -106,7 +106,7 @@ class UploadTooLarge(Exception):
 
 
 def _static_url(request: Request, path: str) -> str:
-    return f"{settings.base_url_path}/static/{path}"
+    return settings.url(f"static/{path}")
 
 
 # --------------------------------------------------------------------------
@@ -421,12 +421,12 @@ async def submit(
         job.result_files.append(ResultFile(display_name=display_name, fs_name=fs_name))
 
     # Back url = this form.
-    back_url = str(request.base_url).rstrip("/") + settings.base_url_path + "/"
+    back_url = str(request.base_url).rstrip("/") + settings.url()
     job.back_url = back_url
 
     # Prepare the email body file.
     if job.has_valid_email():
-        results_url = f"{settings.result_url_host}{settings.base_url_path}/job/results/{job.job_uid}"
+        results_url = settings.external_url(f"job/results/{job.job_uid}")
         body = build_mail_body(job, result_url, results_url, back_url)
         Path(work_dir, "mail_body.txt").write_text(body)
 
@@ -444,7 +444,7 @@ async def submit(
     db.commit()
 
     return RedirectResponse(
-        f"{settings.base_url_path}/job/status/{job.job_uid}",
+        settings.url(f"job/status/{job.job_uid}"),
         status_code=303,
     )
 
@@ -469,7 +469,7 @@ def job_status_js(uid: str, db: Session = Depends(get_db)):
         {
             "status": text_status,
             "shouldRedirect": is_finished,
-            "resultsUrl": f"{settings.base_url_path}/job/results/{job.job_uid}",
+            "resultsUrl": settings.url(f"job/results/{job.job_uid}"),
         }
     )
 
@@ -482,14 +482,14 @@ def job_status(request: Request, uid: str, db: Session = Depends(get_db)):
     scheduler = get_scheduler()
     text_status = scheduler.get_status_as_text(scheduler.get_status(job, db=db))
     if scheduler.is_finished(job, db=db):
-        return RedirectResponse(f"{settings.base_url_path}/job/results/{job.job_uid}")
+        return RedirectResponse(settings.url(f"job/results/{job.job_uid}"))
     return _render(request, "status.html", {
         "request": request,
         "static_url": lambda p: _static_url(request, p),
         "base_url_path": settings.base_url_path,
         "job": job,
         "status": text_status,
-        "status_js_url": f"{settings.base_url_path}/job/status/{job.job_uid}.js",
+        "status_js_url": settings.url(f"job/status/{job.job_uid}.js"),
     })
 
 
@@ -542,7 +542,7 @@ def job_results(request: Request, uid: str, db: Session = Depends(get_db)):
         return _render_error(request, uid, "Job %s is not available." % uid, job)
     scheduler = get_scheduler()
     if not scheduler.is_finished(job, db=db):
-        return RedirectResponse(f"{settings.base_url_path}/job/status/{job.job_uid}")
+        return RedirectResponse(settings.url(f"job/status/{job.job_uid}"))
     text_status = scheduler.get_status_as_text(scheduler.get_status(job, db=db))
     result_url = scheduler.get_result_url(job)
 
